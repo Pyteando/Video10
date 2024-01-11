@@ -1,0 +1,62 @@
+import cv2
+import numpy as np
+from tkinter import filedialog, simpledialog, Tk
+
+
+def get_hsv_values(image, point):
+    hsv_point = cv2.cvtColor(np.uint8([[point]]), cv2.COLOR_BGR2HSV)[0][0]
+    return tuple(hsv_point)
+
+
+# Função para calcular a faixa de HSV para um determinado valor de HSV
+def calculate_hsv_range(hsv_value, h_range=5, s_range=50, v_range=50):
+    lower_bound = (max(0, hsv_value[0] - h_range), max(0, hsv_value[1] - s_range), max(0, hsv_value[2] - v_range))
+    upper_bound = (min(179, hsv_value[0] + h_range), min(255, hsv_value[1] + s_range), min(255, hsv_value[2] + v_range))
+    return lower_bound, upper_bound
+
+
+# Abre a caixa de diálogo de arquivo para escolher o arquivo de imagem
+root = Tk()
+root.withdraw()
+image_path = filedialog.askopenfilename(title="Select Image File", filetypes=[("Image files", "*.jpg;*.jpeg;*.png")])
+root.destroy()
+
+if not image_path:
+    print("No file selected. Exiting.")
+    exit()
+
+# Carrega a imagem
+image = cv2.imread(image_path)
+
+# Obtém o fator de redimensionamento da entrada do usuário
+resize_factor = simpledialog.askfloat("Resize Factor", "Enter the image resize factor:", initialvalue=1.0)
+if resize_factor is None:
+    print("Invalid resize factor. Exiting.")
+    exit()
+
+# Redimensiona a imagem
+image = cv2.resize(image, None, fx=resize_factor, fy=resize_factor)
+
+
+# Define uma função de retorno de chamada para eventos do mouse
+def mouse_callback2(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        color = image[y, x]
+        hsv_color = get_hsv_values(image, color)
+
+        # Calcula faixa HSV
+        hsv_range = calculate_hsv_range(hsv_color)
+
+        # Imprime os resultados no formato especificado
+        print(
+            f"{', '.join(map(str, color))}, {', '.join(map(str, hsv_range[0]))}, {', '.join(map(str, hsv_range[1]))}")
+
+
+# Configura a janela e o retorno de chamada
+cv2.namedWindow('Image')
+cv2.setMouseCallback('Image', mouse_callback2)
+
+# Exibe a imagem e aguarde a entrada do usuário
+cv2.imshow('Image', image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
